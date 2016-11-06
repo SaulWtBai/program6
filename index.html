@@ -82,7 +82,7 @@ g.call(xAxis).append("text")
     .attr("y", -6)
     .text("Population per square mile");
 
-d3.json("md1.json", function(error, ca) {//----------------------------------------------------------
+d3.json("ca.json", function(error, ca) {//----------------------------------------------------------
   if (error) throw error;
 window.console.log(ca);
   var tracts = topojson.feature(ca, ca.objects.tracts);
