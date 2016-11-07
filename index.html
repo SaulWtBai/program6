@@ -30,9 +30,25 @@ svg {
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script>
+//Define Margin
+var margin = {left: -50, right: 160, top: 0, bottom: 50 }, 
+    width = 960 - margin.left,
+    height = 500 - margin.top - margin.bottom;
 
-var width = 960,
-    height = 1100;
+// define the area of drawing
+var svg = d3.select("body").append("svg")
+    // define the width of area
+    .attr("width", width + margin.left + margin.right+100)
+    // define the height of area
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    // adjust the position of area
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    ;
+    
+
+//var width = 960,
+//    height = 1100;
 
 var formatNumber = d3.format(",d");
 
@@ -46,8 +62,10 @@ var color = d3.scale.threshold()
 // A position encoding for the key only.
 var x = d3.scale.linear()
     .domain([0, 5100])
-    .range([0, 480]);
-
+    .range([480,800]);
+    
+//右边的“Population per square mile”刻度条
+// the position of x axis
 var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom")
@@ -55,14 +73,16 @@ var xAxis = d3.svg.axis()
     .tickValues(color.domain())
     .tickFormat(function(d) { return d >= 100 ? formatNumber(d) : null; });
 
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
+//var svg = d3.select("body").append("svg")
+//    .attr("width", width)
+//    .attr("height", height);
 
 var g = svg.append("g")
     .attr("class", "key")
     .attr("transform", "translate(440,40)");
 
+//这个是右边的人口与颜色的刻度条
+//draw the Population per square mile
 g.selectAll("rect")
     .data(color.range().map(function(d, i) {
       return {
@@ -73,8 +93,13 @@ g.selectAll("rect")
     }))
   .enter().append("rect")
     .attr("height", 8)
-    .attr("x", function(d) { return d.x0; })
-    .attr("width", function(d) { return d.x1 - d.x0; })
+    .attr("x", function(d) {
+        return d.x0;
+    })
+    .attr("width", function(d) { 
+//        window.console.log(d.x1 - d.x0);
+        return d.x1 - d.x0; 
+    })
     .style("fill", function(d) { return d.z; });
 
 g.call(xAxis).append("text")
@@ -82,12 +107,20 @@ g.call(xAxis).append("text")
     .attr("y", -6)
     .text("Population per square mile");
 
-d3.json("ca.json", function(error, ca) {//----------------------------------------------------------
-  if (error) throw error;
-window.console.log(ca);
-  var tracts = topojson.feature(ca, ca.objects.tracts);
-    
 
+
+    
+//button used to show the population denisity
+var buttonP = d3.select("body").append("button").attr("id","population").text("population-off");
+    
+    
+//load the map json file
+d3.json("md.json", function(error, ca) { 
+  if (error) throw error;
+
+  var tracts = topojson.feature(ca, ca.objects.tracts);
+
+    
   // Clip tracts to land.
   svg.append("defs").append("clipPath")
       .attr("id", "clip-land")
@@ -101,20 +134,47 @@ window.console.log(ca);
       .attr("clip-path", "url(#clip-land)")
     .selectAll("path")
       .data(d3.nest()
-        .key(function(d) { return color(d.properties.population / d.properties.area * 2.58999e6); })
-        .entries(tracts.features.filter(function(d) { return d.properties.area; })))
+        .key(function(d) {
+            return color(d.properties.population / d.properties.area * 2.58999e6);
+        })
+        .entries(tracts.features.filter(function(d) { return d.properties.area; }))
+      )
     .enter().append("path")
-      .style("fill", function(d) { return d.key; })
-      .attr("d", function(d) { return path({type: "FeatureCollection", features: d.values}); });
+      //fill the color of map
+      .style("fill", function(d) {
+            return d.key; 
+//            return "none";
+      })
+      .attr("d", function(d) {
+//            window.console.log(d.values);
+            return path({type: "FeatureCollection", features: d.values}); 
+      })
+      .attr("stroke","none");
+
+    // the visualization will display (or not display) stateboundary and census tract boundaries
+    var point3 = d3.select("button").on("click", function() {
+        var  population=d3.select("#population").text();
+        if(population=="population-on"){
+            d3.select("#population").text("population-off");
+            d3.select("body").selectAll("g").selectAll("path")
+                .attr("stroke","none");
+        }else{
+            d3.select("#population").text("population-on");
+            d3.select("body").selectAll("g").selectAll("path")
+                .attr("stroke","#008000");
+        }
+    });
+    
 
   // Draw county borders.
+  //这个画了所有的的县区的分界的那好多条黑线
   svg.append("path")
       .datum(topojson.mesh(ca, ca.objects.counties, function(a, b) { return a !== b; }))
       .attr("class", "county-border")
-      .attr("d",path);
+      .attr("d", path);
+    
 });
 
-    
 d3.select(self.frameElement).style("height", height + "px");
 
 </script>
