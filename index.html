@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<head>
 <style>
 
 svg {
@@ -26,7 +27,9 @@ svg {
 }
 
 </style>
+</head>
 <body>
+    <h1>Maryland Population Density 2016</h1>
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script>
@@ -55,9 +58,13 @@ var formatNumber = d3.format(",d");
 var path = d3.geo.path()
     .projection(null);
 
-var color = d3.scale.threshold()
-    .domain([1, 10, 50, 100, 500, 1000, 2000, 5000])
-    .range(["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
+var color1 = d3.scale.threshold()
+    .domain([500, 1000, 2000, 5000])
+    .range(["#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
+    
+var color2 = d3.scale.threshold()
+    .domain([500, 1000, 2000, 5000])
+    .range([ "#40E0D0", "#00FFFF", "#1E90FF", "#0000CD", "#000080"]);
 
 // A position encoding for the key only.
 var x = d3.scale.linear()
@@ -70,7 +77,7 @@ var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom")
     .tickSize(13)
-    .tickValues(color.domain())
+    .tickValues(color1.domain())
     .tickFormat(function(d) { return d >= 100 ? formatNumber(d) : null; });
 
 //var svg = d3.select("body").append("svg")
@@ -84,10 +91,10 @@ var g = svg.append("g")
 //这个是右边的人口与颜色的刻度条
 //draw the Population per square mile
 g.selectAll("rect")
-    .data(color.range().map(function(d, i) {
+    .data(color1.range().map(function(d, i) {
       return {
-        x0: i ? x(color.domain()[i - 1]) : x.range()[0],
-        x1: i < color.domain().length ? x(color.domain()[i]) : x.range()[1],
+        x0: i ? x(color1.domain()[i - 1]) : x.range()[0],
+        x1: i < color1.domain().length ? x(color1.domain()[i]) : x.range()[1],
         z: d
       };
     }))
@@ -111,7 +118,8 @@ g.call(xAxis).append("text")
 
     
 //button used to show the population denisity
-var buttonP = d3.select("body").append("button").attr("id","population").text("population-off");
+var buttonP = d3.select("body").append("button").attr("id","population").text("line-off");
+var buttonC = d3.select("body").append("button").attr("id","color-change").text("color-off");
     
     
 //load the map json file
@@ -130,12 +138,13 @@ d3.json("md.json", function(error, ca) {
 
   // Group tracts by color for faster rendering.
   svg.append("g")
+      .attr("id","mappath")
       .attr("class", "tract")
       .attr("clip-path", "url(#clip-land)")
     .selectAll("path")
       .data(d3.nest()
         .key(function(d) {
-            return color(d.properties.population / d.properties.area * 2.58999e6);
+            return color1(d.properties.population / d.properties.area * 2.58999e6);
         })
         .entries(tracts.features.filter(function(d) { return d.properties.area; }))
       )
@@ -143,7 +152,6 @@ d3.json("md.json", function(error, ca) {
       //fill the color of map
       .style("fill", function(d) {
             return d.key; 
-//            return "none";
       })
       .attr("d", function(d) {
 //            window.console.log(d.values);
@@ -152,7 +160,7 @@ d3.json("md.json", function(error, ca) {
       .attr("stroke","none");
 
     // the visualization will display (or not display) stateboundary and census tract boundaries
-    var point3 = d3.select("button").on("click", function() {
+    var point3 = d3.select("#population").on("click", function() {
         var  population=d3.select("#population").text();
         if(population=="population-on"){
             d3.select("#population").text("population-off");
@@ -162,6 +170,59 @@ d3.json("md.json", function(error, ca) {
             d3.select("#population").text("population-on");
             d3.select("body").selectAll("g").selectAll("path")
                 .attr("stroke","#008000");
+        }
+    });
+    
+//    var color = d3.scale.threshold()
+//    .domain([50, 100, 500, 1000, 2000, 5000])
+//    .range(["#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
+    
+    // the visualization will display (or not display) stateboundary and census tract boundaries
+    var point4 = d3.select("#color-change").on("click", function() {
+        var  colortext=d3.select("#color-change").text();
+        if(colortext=="color-on"){
+            d3.select("#color-change").text("color-off");
+            d3.select("body").select("svg").select("g").select("g").selectAll("rect")
+                .data(color1.range().map(function(d, i) {
+                    return {
+                        x0: i ? x(color1.domain()[i - 1]) : x.range()[0],
+                        x1: i < color1.domain().length ? x(color1.domain()[i]) : x.range()[1],
+                        z: d
+                    };
+                }))
+                .style("fill", function(d) { return d.z; });
+            d3.select("body").select("svg").select("#mappath").selectAll("path")
+                .data(d3.nest()
+                    .key(function(d) {
+                        return color1(d.properties.population / d.properties.area * 2.58999e6);
+                    })
+                    .entries(tracts.features.filter(function(d) { return d.properties.area; }))
+                )
+                .style("fill", function(d) {
+                    return d.key;
+                });
+            
+        }else{
+            d3.select("#color-change").text("color-on");
+            d3.select("body").select("svg").select("g").select("g").selectAll("rect")
+                .data(color2.range().map(function(d, i) {
+                    return {
+                        x0: i ? x(color2.domain()[i - 1]) : x.range()[0],
+                        x1: i < color2.domain().length ? x(color2.domain()[i]) : x.range()[1],
+                        z: d
+                    };
+                }))
+                .style("fill", function(d) { return d.z; });
+            d3.select("body").select("svg").select("#mappath").selectAll("path")
+                .data(d3.nest()
+                    .key(function(d) {
+                        return color2(d.properties.population / d.properties.area * 2.58999e6);
+                    })
+                    .entries(tracts.features.filter(function(d) { return d.properties.area; }))
+                )
+                .style("fill", function(d) {
+                    return d.key;
+                });
         }
     });
     
@@ -178,3 +239,6 @@ d3.json("md.json", function(error, ca) {
 d3.select(self.frameElement).style("height", height + "px");
 
 </script>
+    <p>Created by Wentian Bai and Wentan Bai</p>
+    <p>CMPS 165</p>
+    <p>Fall 2016</p>
